@@ -1,0 +1,50 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      # 1. Instala dependências
+      - yum update -y
+      - yum install -y unzip tar gzip
+      
+      # 2. Instala Terraform
+      - TERRAFORM_VERSION="1.5.7"
+      - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
+      
+      # 3. Instala OPA
+      - curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+      - chmod +x opa
+      - mv opa /usr/local/bin/
+
+  build:
+    commands:
+      # Validação para CloudFormation (CORRIGIDO - remove o ./)
+      - for template in $(find templates -name "*.yaml" -o -name "*.yml"); do
+          echo "Validando CFN $template...";
+          opa eval -i $template -d policies/cfn/ "data.cloudformation.deny" --format pretty || exit 1;
+        done
+
+      # Validação para Terraform
+      - echo "Gerando plano do Terraform..."
+      - cd terraform && terraform init && terraform plan -out=tfplan && cd ..
+      - cd terraform && terraform show -json tfplan > ../tfplan.json && cd ..
+
+      
+
+      - echo "Validando plano com OPA..."
+      - opa eval -i tfplan.json -d policies/tf/ "data.terraform.deny" --format=json > opa_result.json
+      - if [ $(jq -r '.result[0].expressions[0].value | length' opa_result.json) -gt 0 ]; then 
+          echo "violações encontradas:"; 
+          cat opa_result.json | jq .; 
+          exit 1; 
+        fi
+
+            # Deploy condicional
+      - if [ -f "templates/meu-template.yaml" ]; then
+          aws cloudformation deploy --template-file templates/meu-template.yaml --stack-name minha-stack --capabilities CAPABILITY_IAM;
+        fi
+
+      - if [ -f "terraform/main.tf" ]; then
+          cd terraform && terraform apply -auto-approve && cd ..;
+        fi
