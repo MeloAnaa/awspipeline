@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MyBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: bucket_ana
+      Tags:
+        - Key: Owner
+          Value: teste
+        - Key: Environment
+          Value: labestagioana
+        - Key: Project
+          Value: meu-projeto
