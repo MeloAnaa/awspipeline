@@ -3,7 +3,7 @@ Resources:
   MyBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: bucket_ana
+      BucketName: bucket_ana1232324234333333333333
       Tags:
         - Key: Owner
           Value: teste
