@@ -11,5 +11,4 @@ Resources:
           Value: labestagioana
         - Key: Project
           Value: meu-projeto
-      CreateBucketConfiguration:
-        LocationConstraint: us-east-2
+      
