@@ -1,4 +1,10 @@
 resource "aws_s3_bucket" "meu_bucket" {
-  bucket = "meu-bucket-anaestagiolab202555" # Nome único globalmente
+  bucket = "meu-bucket-exemplo-simples-12345"
   acl    = "private"
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "ana"
+    Project     = "Projeto"
+  }
 }
