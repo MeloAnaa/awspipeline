@@ -1,9 +1,9 @@
-resource "aws_s3_bucket" "bucket_terraform" {
-  bucket = "meu-bucket-unico-terraformlabestagio1"
+provider "aws" {
+  region = "us-east-1" # você pode trocar pela sua região desejada
+}
 
-  tags = {
-    Owner      = "ana"
-    Environment = "dev"
-    Project    = "meu-projeto"
-  }
+resource "aws_s3_bucket" "meu_bucket" {
+  bucket = "meu-bucket-estagiolabana20255555" # o nome do bucket deve ser único globalmente
+
+  acl    = "private" # acesso padrão privado
 }

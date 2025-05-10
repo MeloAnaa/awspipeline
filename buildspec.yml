@@ -40,7 +40,7 @@ phases:
           exit 1; 
         fi
 
-            # Deploy condicional
+            # Deploy condicional #corrigit (ta usando o meu-template.yaml - deixe generalista pra todos)
       - if [ -f "templates/meu-template.yaml" ]; then
           aws cloudformation deploy --template-file templates/meu-template.yaml --stack-name minha-stack --capabilities CAPABILITY_IAM;
         fi

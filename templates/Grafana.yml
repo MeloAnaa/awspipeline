@@ -1,0 +1,40 @@
+#criar um bucket pra armazenar logs, integrar para forncer reports e usage tambem, etc .....
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Workspace do Amazon Grafana para visualização de custos AWS via Cost Explorer'
+
+Resources:
+  # 1. Role IAM para o Grafana acessar o Cost Explorer
+  GrafanaCostRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: grafana.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCostExplorerReadOnlyAccess  # Permissão para custos
+        - arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess       # Para métricas adicionais
+
+  # 2. Workspace do Grafana
+  GrafanaWorkspace:
+    Type: AWS::Grafana::Workspace
+    Properties:
+      Name: "Grafana-Custos-AWS"
+      Description: "Workspace para monitoramento de custos AWS"
+      AccountAccessType: CURRENT_ACCOUNT
+      AuthenticationProviders:
+        - AWS_SSO  # Autenticação simplificada (pode trocar por SAML se necessário)
+      PermissionType: SERVICE_MANAGED
+      RoleArn: !GetAtt GrafanaCostRole.Arn
+      DataSources:
+        - AWS_CLOUDWATCH
+        - AWS_COST_EXPLORER  # Fonte de dados principal para custos
+
+Outputs:
+  GrafanaURL:
+    Description: "URL de acesso ao Grafana"
+    Value: !GetAtt GrafanaWorkspace.Endpoint
