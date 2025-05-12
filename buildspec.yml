@@ -3,45 +3,65 @@ version: 0.2
 phases:
   install:
     commands:
-      
-      - yum remove -y curl-minimal || true  
+      - yum remove -y curl-minimal || true
       - yum update -y
-      - yum install -y unzip tar gzip jq curl --allowerasing  # Força substituição de pacotes conflitantes
-
-      
+      - yum install -y unzip tar gzip jq curl --allowerasing
       - TERRAFORM_VERSION="1.5.7"
       - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
       - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
 
   pre_build:
     commands:
-      # Validação com Firefly (mantido igual)
       - echo "Validando infraestrutura com Firefly..."
       - |
-        # Autenticação na API do Firefly
-        AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
+        # Debug: Verifica se as variáveis de ambiente estão definidas
+        echo "Variáveis FIREFLY_ACCESS_KEY e FIREFLY_SECRET_KEY existem? $(env | grep FIREFLY_)"
+        
+        # Autenticação com tratamento de erro detalhado
+        AUTH_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
-          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
-
+          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}" 2>&1)
+        
+        echo "Resposta bruta da autenticação: $AUTH_RESPONSE"
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        [ -z "$ACCESS_TOKEN" ] && { echo "Falha na autenticação"; exit 1; }
+        
+        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
+          echo "Falha na autenticação. Resposta completa:"
+          echo "$AUTH_RESPONSE"
+          exit 1
+        fi
 
+        # Gera plano Terraform
         cd terraform
         terraform init
         terraform plan -out=tfplan
         terraform show -json tfplan > ../tfplan.json
         cd ..
 
-        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/validate" \
+        # Validação com debug
+        echo "Conteúdo do tfplan.json:"
+        head -n 20 ../tfplan.json  # Mostra apenas o início para verificar estrutura
+        
+        VALIDATION_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/validate" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
-          -d @tfplan.json)
-
-        [ "$(echo "$VALIDATION_RESPONSE" | jq -r '.status')" != "approved" ] && {
-          echo "Firefly rejeitou a infraestrutura:";
-          echo "$VALIDATION_RESPONSE" | jq .;
-          exit 1;
-        }
+          -d @tfplan.json 2>&1)
+        
+        echo "Resposta bruta da validação: $VALIDATION_RESPONSE"
+        
+        # Verificação mais robusta
+        if ! echo "$VALIDATION_RESPONSE" | jq -e . >/dev/null 2>&1; then
+          echo "Resposta inválida da API (não é JSON válido):"
+          echo "$VALIDATION_RESPONSE"
+          exit 1
+        fi
+        
+        STATUS=$(echo "$VALIDATION_RESPONSE" | jq -r '.status // empty')
+        if [ "$STATUS" != "approved" ]; then
+          echo "Firefly rejeitou a infraestrutura. Detalhes:"
+          echo "$VALIDATION_RESPONSE" | jq .
+          exit 1
+        fi
 
   build:
     commands:
