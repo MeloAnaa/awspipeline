@@ -56,5 +56,5 @@ phases:
 
 env:
   secrets-manager:
-    FIREFLY_ACCESS_KEY: "firefly/creds:access-key" 
-    FIREFLY_SECRET_KEY: "firefly/creds:secret-key"
+    FIREFLY_ACCESS_KEY: "firefly/credentials-labana2025:access-key" 
+    FIREFLY_SECRET_KEY: "firefly/credentials-labana2025:secret-key"
