@@ -3,60 +3,45 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Instalando dependências..."
-      - yum remove -y curl-minimal || true  # Remove versão conflitante primeiro
-      - yum install -y curl jq --allowerasing  # Força substituição de pacotes
-      - echo "Versão do curl: $(curl --version | head -n1)"
-      - echo "Versão do jq: $(jq --version)"
+      - yum install -y curl jq
+
 
   pre_build:
     commands:
-      - echo "=== TESTE DA API FIREFLY ==="
+      - echo "=== TESTE SIMPLES DA API FIREFLY ==="
       
-      # Verificação das variáveis
-      - |
-        if [ -z "$FIREFLY_ACCESS_KEY" ] || [ -z "$FIREFLY_SECRET_KEY" ]; then
-          echo "❌ ERRO: Credenciais do Firefly não carregadas"
-          exit 1
-        fi
-        echo "Credenciais carregadas com sucesso"
-
       # Autenticação
       - |
-        AUTH_PAYLOAD='{"accessKey":"'"$FIREFLY_ACCESS_KEY"'","secretKey":"'"$FIREFLY_SECRET_KEY"'"}'
-        echo "Payload de autenticação: $AUTH_PAYLOAD"
-        
+        echo "1. Obtendo token de acesso..."
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
-          -d "$AUTH_PAYLOAD")
+          -d "{\"accessKey\":\"$FIREFLY_ACCESS_KEY\",\"secretKey\":\"$FIREFLY_SECRET_KEY\"}")
         
         echo "Resposta da autenticação:"
         echo "$AUTH_RESPONSE" | jq .
 
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-          echo "❌ ERRO: Falha na autenticação"
+        if [ -z "$ACCESS_TOKEN" ]; then
+          echo "❌ Falha na autenticação"
           exit 1
         fi
 
-      # Teste simples da API
+      # Chamada de teste
       - |
+        echo "2. Chamando endpoint /codify com payload mínimo..."
         TEST_PAYLOAD='{
-          "assetType": "test_asset",
-          "assetId": "test-123",
+          "assetType": "terraform_plan",
+          "assetId": "teste-123",
           "iacType": "terraform",
           "provider": "aws",
           "accountNumber": "123456789012"
         }'
-        
-        echo "Enviando payload de teste:"
-        echo "$TEST_PAYLOAD" | jq .
-        
+
         RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d "$TEST_PAYLOAD")
-        
+
         echo "Resposta da API:"
         echo "$RESPONSE" | jq .
 
