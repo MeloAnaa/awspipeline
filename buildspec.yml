@@ -14,54 +14,53 @@ phases:
     commands:
       - echo "Validando infraestrutura com Firefly..."
       - |
-        # Debug: Verifica se as variáveis de ambiente estão definidas
-        echo "Variáveis FIREFLY_ACCESS_KEY e FIREFLY_SECRET_KEY existem? $(env | grep FIREFLY_)"
-        
-        # Autenticação com tratamento de erro detalhado
-        AUTH_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/login" \
+        # 1. Autenticação - versão limpa sem debug
+        AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
-          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}" 2>&1)
+          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
         
-        echo "Resposta bruta da autenticação: $AUTH_RESPONSE"
+        # Debug opcional (descomente se necessário)
+        # echo "Resposta da autenticação: $AUTH_RESPONSE"
+        
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        
         if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-          echo "Falha na autenticação. Resposta completa:"
-          echo "$AUTH_RESPONSE"
+          echo "Falha na autenticação. Resposta:"
+          echo "$AUTH_RESPONSE" | jq .
           exit 1
         fi
 
-        # Gera plano Terraform
+        # 2. Gera plano Terraform
         cd terraform
         terraform init
         terraform plan -out=tfplan
         terraform show -json tfplan > ../tfplan.json
         cd ..
 
-        # Validação com debug
-        echo "Conteúdo do tfplan.json:"
-        head -n 20 ../tfplan.json  # Mostra apenas o início para verificar estrutura
-        
-        VALIDATION_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/validate" \
+        # 3. Validação
+        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/validate" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
-          -d @tfplan.json 2>&1)
+          -d @tfplan.json)
         
-        echo "Resposta bruta da validação: $VALIDATION_RESPONSE"
-        
-        # Verificação mais robusta
+        # Verifica se é JSON válido
         if ! echo "$VALIDATION_RESPONSE" | jq -e . >/dev/null 2>&1; then
-          echo "Resposta inválida da API (não é JSON válido):"
-          echo "$VALIDATION_RESPONSE"
+          echo "Erro: Resposta inválida da API. Verifique:"
+          echo "1. Se o endpoint /validate está correto"
+          echo "2. Se o token tem permissões"
+          echo "3. O formato do tfplan.json"
+          echo "Resposta bruta: $VALIDATION_RESPONSE"
           exit 1
         fi
-        
-        STATUS=$(echo "$VALIDATION_RESPONSE" | jq -r '.status // empty')
+
+        # Processa resposta
+        STATUS=$(echo "$VALIDATION_RESPONSE" | jq -r '.status')
         if [ "$STATUS" != "approved" ]; then
-          echo "Firefly rejeitou a infraestrutura. Detalhes:"
+          echo "Firefly rejeitou a infraestrutura:"
           echo "$VALIDATION_RESPONSE" | jq .
           exit 1
         fi
+
+        echo "Validação aprovada com sucesso!"
 
   build:
     commands:
