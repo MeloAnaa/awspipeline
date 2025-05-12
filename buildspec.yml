@@ -7,71 +7,42 @@ phases:
       - yum install -y jq curl unzip
       - curl -LO https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
       - unzip terraform_1.5.7_linux_amd64.zip -d /usr/local/bin/
-      - echo "Versões: Terraform $(terraform --version), jq $(jq --version)"
+      - echo "Versões: Terraform $(terraform --version | head -n1), jq $(jq --version)"
 
   pre_build:
     commands:
       - echo "=== INÍCIO DA VALIDAÇÃO FIREFLY ==="
       - |
-        # Debug: Verificar segredos carregados (sem expor valores)
-        echo "Segredos carregados:"
-        echo "- ARN Firefly: arn:aws:secretsmanager:us-east-1:458745156302:secret:firefly/credentials-labana2025-RksHlQ"
-        echo "- ARN AWS Account: arn:aws:secretsmanager:us-east-1:458745156302:secret:aws-account-8MKO9x"
-
-        # Autenticação na API Firefly
+        echo "Verificando segredos..."
+        [ -z "$AWS_ACCOUNT_ID" ] && { echo "Variável AWS_ACCOUNT_ID não definida"; exit 1; }
+        
+        # Autenticação
+        AUTH_PAYLOAD='{"accessKey":"'"$FIREFLY_ACCESS_KEY"'","secretKey":"'"$FIREFLY_SECRET_KEY"'"}'
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
-          -d "{\"accessKey\":\"$FIREFLY_ACCESS_KEY\",\"secretKey\":\"$FIREFLY_SECRET_KEY\"}")
+          -d "$AUTH_PAYLOAD")
         
-        echo "Resposta de autenticação:"
-        echo "$AUTH_RESPONSE" | jq .
-
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-          echo "❌ ERRO: Falha na autenticação com Firefly"
-          exit 1
-        fi
+        [ "$ACCESS_TOKEN" = "null" ] && { echo "Erro na autenticação"; exit 1; }
 
-        # Preparar payload com accountNumber correto
-        PAYLOAD=$(jq -n \
-          --arg account "$AWS_ACCOUNT_ID" \
-          --slurpfile tfplan tfplan.json \
-          '{
-            assetType: "terraform_plan",
-            assetId: "infra-${account}-$(date +%Y%m%d)",
-            iacType: "terraform",
-            provider: "aws",
-            accountNumber: $account,
-            plan: $tfplan[0]
-          }')
+        # Payload sem jq complexo
+        PAYLOAD='{
+          "assetType": "terraform_plan",
+          "assetId": "infra-'"$AWS_ACCOUNT_ID"'-'"$(date +%s)"'",
+          "iacType": "terraform",
+          "provider": "aws",
+          "accountNumber": "'"$AWS_ACCOUNT_ID"'",
+          "plan": '"$(cat tfplan.json)"'
+        }'
 
-        echo "Payload sendo enviado:"
-        echo "$PAYLOAD" | jq .
-
-        # Chamar endpoint /codify
-        API_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/codify" \
+        # Chamada à API
+        RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
-          -d "$PAYLOAD" 2>&1)
+          -d "$PAYLOAD")
 
-        # Extrair HTTP status code e corpo da resposta
-        HTTP_CODE=$(echo "$API_RESPONSE" | grep -oP 'HTTP/\d\.\d \K\d{3}')
-        RESPONSE_BODY=$(echo "$API_RESPONSE" | grep -Pzo '(?<=\r\n\r\n).*')
-
-        echo "Firefly Response (HTTP $HTTP_CODE):"
-        echo "$RESPONSE_BODY" | jq .
-
-        if [ "$HTTP_CODE" != "200" ]; then
-          echo "❌ ERRO: Chamada à API falhou (HTTP $HTTP_CODE)"
-          exit 1
-        fi
-
-        STATUS=$(echo "$RESPONSE_BODY" | jq -r '.codifiedResult.status')
-        if [ "$STATUS" != "approved" ]; then
-          echo "❌ ERRO: Infraestrutura rejeitada. Motivo:"
-          echo "$RESPONSE_BODY" | jq -r '.codifiedResult.message'
-          exit 1
-        fi
+        STATUS=$(echo "$RESPONSE" | jq -r '.codifiedResult.status')
+        [ "$STATUS" != "approved" ] && { echo "Rejeitado: $(echo "$RESPONSE" | jq -r '.codifiedResult.message')"; exit 1; }
 
   build:
     commands:
