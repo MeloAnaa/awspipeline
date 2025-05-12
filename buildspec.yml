@@ -7,25 +7,30 @@ phases:
       - yum install -y jq curl unzip
       - curl -LO https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip
       - unzip terraform_1.5.7_linux_amd64.zip -d /usr/local/bin/
-      - echo "Versões: Terraform $(terraform --version | head -n1), jq $(jq --version)"
+      - echo "Versão do Terraform: $(terraform --version | head -n1)"
+      - echo "Versão do jq: $(jq --version)"
 
   pre_build:
     commands:
       - echo "=== INÍCIO DA VALIDAÇÃO FIREFLY ==="
+      - echo "Verificando segredos..."
+      - '[ -z "$AWS_ACCOUNT_ID" ] && { echo "Variável AWS_ACCOUNT_ID não definida"; exit 1; }'
+      
       - |
-        echo "Verificando segredos..."
-        [ -z "$AWS_ACCOUNT_ID" ] && { echo "Variável AWS_ACCOUNT_ID não definida"; exit 1; }
-        
-        # Autenticação
+        # Autenticação na API Firefly
         AUTH_PAYLOAD='{"accessKey":"'"$FIREFLY_ACCESS_KEY"'","secretKey":"'"$FIREFLY_SECRET_KEY"'"}'
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
           -d "$AUTH_PAYLOAD")
         
+        echo "Resposta de autenticação:"
+        echo "$AUTH_RESPONSE" | jq .
+        
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        [ "$ACCESS_TOKEN" = "null" ] && { echo "Erro na autenticação"; exit 1; }
-
-        # Payload sem jq complexo
+        [ "$ACCESS_TOKEN" = "null" ] && { echo "❌ ERRO: Falha na autenticação"; exit 1; }
+      
+      - |
+        # Preparar e enviar payload
         PAYLOAD='{
           "assetType": "terraform_plan",
           "assetId": "infra-'"$AWS_ACCOUNT_ID"'-'"$(date +%s)"'",
@@ -34,15 +39,20 @@ phases:
           "accountNumber": "'"$AWS_ACCOUNT_ID"'",
           "plan": '"$(cat tfplan.json)"'
         }'
-
-        # Chamada à API
+        
+        echo "Payload sendo enviado:"
+        echo "$PAYLOAD" | jq .
+        
         RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d "$PAYLOAD")
-
+        
+        echo "Resposta do Firefly:"
+        echo "$RESPONSE" | jq .
+        
         STATUS=$(echo "$RESPONSE" | jq -r '.codifiedResult.status')
-        [ "$STATUS" != "approved" ] && { echo "Rejeitado: $(echo "$RESPONSE" | jq -r '.codifiedResult.message')"; exit 1; }
+        [ "$STATUS" != "approved" ] && { echo "❌ ERRO: Infraestrutura rejeitada"; exit 1; }
 
   build:
     commands:
@@ -51,6 +61,6 @@ phases:
 
 env:
   secrets-manager:
-    FIREFLY_ACCESS_KEY: "arn:aws:secretsmanager:us-east-1:458745156302:secret:firefly/credentials-labana2025-RksHlQ:access-key::"
-    FIREFLY_SECRET_KEY: "arn:aws:secretsmanager:us-east-1:458745156302:secret:firefly/credentials-labana2025-RksHlQ:secret-key::"
-    AWS_ACCOUNT_ID: "arn:aws:secretsmanager:us-east-1:458745156302:secret:aws-account-8MKO9x:account-id::"
+    FIREFLY_ACCESS_KEY: "firefly/credentials-labana2025:access-key"
+    FIREFLY_SECRET_KEY: "firefly/credentials-labana2025:secret-key"
+    AWS_ACCOUNT_ID: "aws-account:account-id"
