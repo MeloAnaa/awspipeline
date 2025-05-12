@@ -3,58 +3,52 @@ version: 0.2
 phases:
   install:
     commands:
+      
+      - yum remove -y curl-minimal || true  
       - yum update -y
-      - yum install -y unzip tar gzip jq curl
+      - yum install -y unzip tar gzip jq curl --allowerasing  # Força substituição de pacotes conflitantes
 
-     
+      
       - TERRAFORM_VERSION="1.5.7"
       - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
       - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
 
   pre_build:
     commands:
-      # Validação com Firefly
+      # Validação com Firefly (mantido igual)
       - echo "Validando infraestrutura com Firefly..."
       - |
-        # Autenticação na API do Firefly (credenciais via Secrets Manager)
+        # Autenticação na API do Firefly
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
           -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
 
-        # Extrai o token de acesso
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        if [ -z "$ACCESS_TOKEN" ]; then
-          echo "Falha na autenticação com Firefly. Verifique as credenciais."
-          exit 1
-        fi
+        [ -z "$ACCESS_TOKEN" ] && { echo "Falha na autenticação"; exit 1; }
 
-        # Gera o plano do Terraform em JSON
         cd terraform
         terraform init
         terraform plan -out=tfplan
         terraform show -json tfplan > ../tfplan.json
         cd ..
 
-        # Envia o plano para validação no Firefly (ajuste o endpoint conforme a API real)
         VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/validate" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d @tfplan.json)
 
-        # Verifica se a validação foi aprovada
-        if [[ $(echo "$VALIDIDATION_RESPONSE" | jq -r '.status') != "approved" ]]; then
-          echo "Firefly rejeitou a infraestrutura. Erros:"
-          echo "$VALIDATION_RESPONSE" | jq .
-          exit 1
-        fi
+        [ "$(echo "$VALIDATION_RESPONSE" | jq -r '.status')" != "approved" ] && {
+          echo "Firefly rejeitou a infraestrutura:";
+          echo "$VALIDATION_RESPONSE" | jq .;
+          exit 1;
+        }
 
   build:
     commands:
-      # Deploy do Terraform (após aprovação do Firefly)
       - echo "Deploy aprovado! Aplicando infraestrutura..."
       - cd terraform && terraform apply -auto-approve
 
 env:
   secrets-manager:
-    FIREFLY_ACCESS_KEY: "firefly/credentials-labana2025:access-key" 
+    FIREFLY_ACCESS_KEY: "firefly/credentials-labana2025:access-key"
     FIREFLY_SECRET_KEY: "firefly/credentials-labana2025:secret-key"
