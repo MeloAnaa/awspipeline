@@ -34,7 +34,7 @@ phases:
         cd ..
 
         # 3. Validação usando o endpoint correto para análise de IaC
-        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/iac/analyze" \
+        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d @tfplan.json)
