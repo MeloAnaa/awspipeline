@@ -5,56 +5,83 @@ phases:
     commands:
       - echo "Instalando dependências..."
       - yum update -y
-      - yum install -y unzip tar gzip
+      - yum install -y unzip tar gzip jq curl
       
-      # 2. Instala Terraform
+      # Instala Terraform
       - TERRAFORM_VERSION="1.5.7"
       - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
       - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
+      - chmod +x /usr/local/bin/terraform
 
   pre_build:
     commands:
       - echo "=== INÍCIO DA VALIDAÇÃO FIREFLY ==="
-      - echo "Verificando segredos..."
-      - '[ -z "$AWS_ACCOUNT_ID" ] && { echo "Variável AWS_ACCOUNT_ID não definida"; exit 1; }'
+      - echo "Debug: AWS_ACCOUNT_ID = $AWS_ACCOUNT_ID"
+      - echo "Debug: FIREFLY_ACCESS_KEY = ${#FIREFLY_ACCESS_KEY} caracteres"
       
+      # Verificação robusta das variáveis
+      - |
+        if [ -z "$AWS_ACCOUNT_ID" ]; then
+          echo "❌ ERRO: AWS_ACCOUNT_ID não carregada"
+          echo "Verifique:"
+          echo "1. Nome do segredo no Secrets Manager"
+          echo "2. Permissões do IAM para o CodeBuild"
+          exit 1
+        fi
+
       - |
         # Autenticação na API Firefly
-        AUTH_PAYLOAD='{"accessKey":"'"$FIREFLY_ACCESS_KEY"'","secretKey":"'"$FIREFLY_SECRET_KEY"'"}'
-        AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
+        AUTH_PAYLOAD=$(jq -n \
+          --arg ak "$FIREFLY_ACCESS_KEY" \
+          --arg sk "$FIREFLY_SECRET_KEY" \
+          '{accessKey: $ak, secretKey: $sk}')
+        
+        AUTH_RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
           -d "$AUTH_PAYLOAD")
         
-        echo "Resposta de autenticação:"
-        echo "$AUTH_RESPONSE" | jq .
-        
+        HTTP_STATUS=$(echo "$AUTH_RESPONSE" | jq -r '.statusCode')
+        if [ "$HTTP_STATUS" != "200" ]; then
+          echo "❌ ERRO: Falha na autenticação (HTTP $HTTP_STATUS)"
+          echo "Resposta completa:"
+          echo "$AUTH_RESPONSE" | jq .
+          exit 1
+        fi
+
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        [ "$ACCESS_TOKEN" = "null" ] && { echo "❌ ERRO: Falha na autenticação"; exit 1; }
-      
+        [ -z "$ACCESS_TOKEN" ] && { echo "❌ ERRO: Token não gerado"; exit 1; }
+
       - |
-        # Preparar e enviar payload
-        PAYLOAD='{
-          "assetType": "terraform_plan",
-          "assetId": "infra-'"$AWS_ACCOUNT_ID"'-'"$(date +%s)"'",
-          "iacType": "terraform",
-          "provider": "aws",
-          "accountNumber": "'"$AWS_ACCOUNT_ID"'",
-          "plan": '"$(cat tfplan.json)"'
-        }'
-        
-        echo "Payload sendo enviado:"
+        # Validação da infraestrutura
+        PAYLOAD=$(jq -n \
+          --arg account "$AWS_ACCOUNT_ID" \
+          --slurpfile tfplan tfplan.json \
+          '{
+            assetType: "terraform_plan",
+            assetId: "infra-\($account)-$(date +%s)",
+            iacType: "terraform",
+            provider: "aws",
+            accountNumber: $account,
+            plan: $tfplan[0]
+          }')
+
+        echo "Payload enviado:"
         echo "$PAYLOAD" | jq .
-        
-        RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
+
+        RESPONSE=$(curl -v -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d "$PAYLOAD")
         
         echo "Resposta do Firefly:"
         echo "$RESPONSE" | jq .
-        
+
         STATUS=$(echo "$RESPONSE" | jq -r '.codifiedResult.status')
-        [ "$STATUS" != "approved" ] && { echo "❌ ERRO: Infraestrutura rejeitada"; exit 1; }
+        if [ "$STATUS" != "approved" ]; then
+          echo "❌ ERRO: Infraestrutura rejeitada"
+          echo "Motivo: $(echo "$RESPONSE" | jq -r '.codifiedResult.message')"
+          exit 1
+        fi
 
   build:
     commands:
