@@ -12,58 +12,60 @@ phases:
 
   pre_build:
     commands:
-      - echo "Validando infraestrutura com Firefly..."
+      - echo "=== Validando infraestrutura com Firefly ==="
       - |
-        # 1. Autenticação
+        # Debug: Verificar se as variáveis de ambiente estão carregadas
+        echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
+        
+        # Autenticação no Firefly
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
-          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
+          -d "{\"accessKey\":\"$FIREFLY_ACCESS_KEY\",\"secretKey\":\"$FIREFLY_SECRET_KEY\"}")
         
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
-          echo "Falha na autenticação. Resposta:"
-          echo "$AUTH_RESPONSE" | jq .
-          exit 1
-        fi
+        [ -z "$ACCESS_TOKEN" ] && { echo "Erro de autenticação no Firefly"; exit 1; }
 
-        # 2. Gera plano Terraform
-        cd terraform
-        terraform init
-        terraform plan -out=tfplan
-        terraform show -json tfplan > ../tfplan.json
-        cd ..
+        # Criar payload com todos os campos obrigatórios
+        jq -n \
+          --arg account "$AWS_ACCOUNT_ID" \
+          --argfile tfplan tfplan.json \
+          '{
+            assetType: "terraform_plan",
+            assetId: "infra-aws",
+            iacType: "terraform",
+            provider: "aws",
+            accountNumber: $account,
+            plan: $tfplan
+          }' > payload.json
 
-        # 3. Validação usando o endpoint correto para análise de IaC
+        # Debug: Verificar conteúdo do payload
+        echo "Payload enviado ao Firefly:"
+        cat payload.json | jq .
+
+        # Chamada à API do Firefly
         VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
-          -d @tfplan.json)
+          -d @payload.json)
 
-        # Verifica se é JSON válido
-        if ! echo "$VALIDATION_RESPONSE" | jq -e . >/dev/null 2>&1; then
-          echo "Erro: Resposta inválida da API. Verifique:"
-          echo "1. Se o token tem permissões"
-          echo "2. O formato do payload"
-          echo "Resposta bruta: $VALIDATION_RESPONSE"
+        echo "Resposta do Firefly:"
+        echo "$VALIDIDATION_RESPONSE" | jq .
+
+        # Verificar aprovação
+        if [ $(echo "$VALIDATION_RESPONSE" | jq -r '.codifiedResult.status') != "approved" ]; then
+          echo "Firefly rejeitou a infraestrutura. Motivo:"
+          echo "$VALIDATION_RESPONSE" | jq -r '.codifiedResult.message'
           exit 1
         fi
-
-        # Processa resposta
-        STATUS=$(echo "$VALIDATION_RESPONSE" | jq -r '.status')
-        if [ "$STATUS" != "approved" ]; then
-          echo "Firefly rejeitou a infraestrutura. Detalhes:"
-          echo "$VALIDATION_RESPONSE" | jq .
-          exit 1
-        fi
-
-        echo "Validação aprovada com sucesso!"
 
   build:
     commands:
-      - echo "Deploy aprovado! Aplicando infraestrutura..."
-      - cd terraform && terraform apply -auto-approve
+      - echo "=== Aplicando infraestrutura ==="
+      - cd terraform
+      - terraform apply -auto-approve tfplan
 
 env:
   secrets-manager:
     FIREFLY_ACCESS_KEY: "firefly/credentials-labana2025:access-key"
     FIREFLY_SECRET_KEY: "firefly/credentials-labana2025:secret-key"
+    AWS_ACCOUNT_ID: "aws-account:account-id"  # Referência ao segredo criado
