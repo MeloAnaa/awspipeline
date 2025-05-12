@@ -3,48 +3,58 @@ version: 0.2
 phases:
   install:
     commands:
-      # 1. Instala dependências
       - yum update -y
-      - yum install -y unzip tar gzip
-      
-      # 2. Instala Terraform
+      - yum install -y unzip tar gzip jq curl
+
+     
       - TERRAFORM_VERSION="1.5.7"
       - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
       - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
-      
-      # 3. Instala OPA
-      - curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
-      - chmod +x opa
-      - mv opa /usr/local/bin/
+
+  pre_build:
+    commands:
+      # Validação com Firefly
+      - echo "Validando infraestrutura com Firefly..."
+      - |
+        # Autenticação na API do Firefly (credenciais via Secrets Manager)
+        AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
+          -H "Content-Type: application/json" \
+          -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
+
+        # Extrai o token de acesso
+        ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
+        if [ -z "$ACCESS_TOKEN" ]; then
+          echo "Falha na autenticação com Firefly. Verifique as credenciais."
+          exit 1
+        fi
+
+        # Gera o plano do Terraform em JSON
+        cd terraform
+        terraform init
+        terraform plan -out=tfplan
+        terraform show -json tfplan > ../tfplan.json
+        cd ..
+
+        # Envia o plano para validação no Firefly (ajuste o endpoint conforme a API real)
+        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/validate" \
+          -H "Authorization: Bearer $ACCESS_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d @tfplan.json)
+
+        # Verifica se a validação foi aprovada
+        if [[ $(echo "$VALIDIDATION_RESPONSE" | jq -r '.status') != "approved" ]]; then
+          echo "Firefly rejeitou a infraestrutura. Erros:"
+          echo "$VALIDATION_RESPONSE" | jq .
+          exit 1
+        fi
 
   build:
     commands:
-      # Validação para CloudFormation (CORRIGIDO - remove o ./)
-      - for template in $(find templates -name "*.yaml" -o -name "*.yml"); do
-          echo "Validando CFN $template...";
-          opa eval -i $template -d policies/cfn/ "data.cloudformation.deny" --format pretty || exit 1;
-        done
+      # Deploy do Terraform (após aprovação do Firefly)
+      - echo "Deploy aprovado! Aplicando infraestrutura..."
+      - cd terraform && terraform apply -auto-approve
 
-      # Validação para Terraform
-      - echo "Gerando plano do Terraform..."
-      - cd terraform && terraform init && terraform plan -out=tfplan && cd ..
-      - cd terraform && terraform show -json tfplan > ../tfplan.json && cd ..
-
-      
-
-      - echo "Validando plano com OPA..."
-      - opa eval -i tfplan.json -d policies/tf/ "data.terraform.deny" --format=json > opa_result.json
-      - if [ $(jq -r '.result[0].expressions[0].value | length' opa_result.json) -gt 0 ]; then 
-          echo "violações encontradas:"; 
-          cat opa_result.json | jq .; 
-          exit 1; 
-        fi
-
-            # Deploy condicional #corrigit (ta usando o meu-template.yaml - deixe generalista pra todos)
-      - if [ -f "templates/meu-template.yaml" ]; then
-          aws cloudformation deploy --template-file templates/meu-template.yaml --stack-name minha-stack --capabilities CAPABILITY_IAM;
-        fi
-
-      - if [ -f "terraform/main.tf" ]; then
-          cd terraform && terraform apply -auto-approve && cd ..;
-        fi
+env:
+  secrets-manager:
+    FIREFLY_ACCESS_KEY: "firefly/creds:access-key" 
+    FIREFLY_SECRET_KEY: "firefly/creds:secret-key"
