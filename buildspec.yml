@@ -14,13 +14,10 @@ phases:
     commands:
       - echo "Validando infraestrutura com Firefly..."
       - |
-        # 1. Autenticação - versão limpa sem debug
+        # 1. Autenticação
         AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
           -H "Content-Type: application/json" \
           -d "{\"accessKey\": \"$FIREFLY_ACCESS_KEY\", \"secretKey\": \"$FIREFLY_SECRET_KEY\"}")
-        
-        # Debug opcional (descomente se necessário)
-        # echo "Resposta da autenticação: $AUTH_RESPONSE"
         
         ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
         if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" = "null" ]; then
@@ -36,18 +33,17 @@ phases:
         terraform show -json tfplan > ../tfplan.json
         cd ..
 
-        # 3. Validação
-        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/validate" \
+        # 3. Validação usando o endpoint correto para análise de IaC
+        VALIDATION_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/iac/analyze" \
           -H "Authorization: Bearer $ACCESS_TOKEN" \
           -H "Content-Type: application/json" \
           -d @tfplan.json)
-        
+
         # Verifica se é JSON válido
         if ! echo "$VALIDATION_RESPONSE" | jq -e . >/dev/null 2>&1; then
           echo "Erro: Resposta inválida da API. Verifique:"
-          echo "1. Se o endpoint /validate está correto"
-          echo "2. Se o token tem permissões"
-          echo "3. O formato do tfplan.json"
+          echo "1. Se o token tem permissões"
+          echo "2. O formato do payload"
           echo "Resposta bruta: $VALIDATION_RESPONSE"
           exit 1
         fi
@@ -55,7 +51,7 @@ phases:
         # Processa resposta
         STATUS=$(echo "$VALIDATION_RESPONSE" | jq -r '.status')
         if [ "$STATUS" != "approved" ]; then
-          echo "Firefly rejeitou a infraestrutura:"
+          echo "Firefly rejeitou a infraestrutura. Detalhes:"
           echo "$VALIDATION_RESPONSE" | jq .
           exit 1
         fi
