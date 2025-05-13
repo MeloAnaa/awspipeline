@@ -10,13 +10,3 @@ resource "aws_s3_bucket" "meu_bucket" {
 }
 
 
-resource "aws_s3_bucket" "meu_bucket" {
-  bucket = "meu-bucket-exemplo-simples-1234909095"
-  acl    = "private"
-
-  tags = {
-    Environment = "Dev"
-    Owner = "ana"
-    Project = "project"
-  }
-}
