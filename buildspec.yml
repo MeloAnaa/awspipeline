@@ -37,7 +37,7 @@ phases:
           "assetId": "teste-123",
           "iacType": "terraform",
           "provider": "aws",
-          "accountNumber": "123456789012"
+          "accountNumber": "458745156302"
         }'
 
         RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
