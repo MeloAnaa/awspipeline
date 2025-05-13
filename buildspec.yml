@@ -3,7 +3,10 @@ version: 0.2
 phases:
   install:
     commands:
-      - sudo apt-get install -y curl jq
+      - echo "Verificando ferramentas instaladas..."
+      - curl --version
+      - yum install -y jq
+
 
 
   pre_build:
