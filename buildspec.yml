@@ -3,50 +3,31 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Verificando ferramentas instaladas..."
-      - curl --version
-      - yum install -y jq
+      # 1. Instala dependências
+      - yum update -y
+      - yum install -y unzip tar gzip
+
+      - curl -O https://gofirefly-prod-iac-ci-cli-binaries.s3.amazonaws.com/fireflyci/latest/fireflyci_Linux_x86_64.tar.gz
+      - tar -xf fireflyci_Linux_x86_64.tar.gz
+      - chmod a+x fireflyci
+      - ./fireflyci post-plan -l plan_log.jsonl -f plan_output.json --workspace WORKSPACEana123
 
 
-
-  pre_build:
-    commands:
-      - echo "=== TESTE SIMPLES DA API FIREFLY ==="
       
-      # Autenticação
-      - |
-        echo "1. Obtendo token de acesso..."
-        AUTH_RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/login" \
-          -H "Content-Type: application/json" \
-          -d "{\"accessKey\":\"$FIREFLY_ACCESS_KEY\",\"secretKey\":\"$FIREFLY_SECRET_KEY\"}")
-        
-        echo "Resposta da autenticação:"
-        echo "$AUTH_RESPONSE" | jq .
+      # 2. Instala Terraform
+      - TERRAFORM_VERSION="1.5.7"
+      - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
 
-        ACCESS_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.accessToken')
-        if [ -z "$ACCESS_TOKEN" ]; then
-          echo "❌ Falha na autenticação"
-          exit 1
-        fi
+  build:
+    commands:
 
-      # Chamada de teste
-      - |
-        echo "2. Chamando endpoint /codify com payload mínimo..."
-        TEST_PAYLOAD='{
-          "assetType": "terraform_plan",
-          "assetId": "teste-123",
-          "iacType": "terraform",
-          "provider": "aws",
-          "accountNumber": "458745156302"
-        }'
+      # Validação para Terraform
+      - echo "Gerando plano do Terraform..."
+      - cd terraform && terraform init && terraform plan -json -out=tf.plan > plan_log.jsonl && terraform show -json tf.plan > plan_output.json 
+      
 
-        RESPONSE=$(curl -s -X POST "https://api.firefly.ai/api/v1.0/codify" \
-          -H "Authorization: Bearer $ACCESS_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d "$TEST_PAYLOAD")
 
-        echo "Resposta da API:"
-        echo "$RESPONSE" | jq .
 
 env:
   secrets-manager:
