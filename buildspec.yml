@@ -24,7 +24,7 @@ phases:
 
       # Validação para Terraform
       - echo "Gerando plano do Terraform..."
-      - cd terraform && terraform init && terraform plan -json -out=tf.plan > plan_log.jsonl && terraform show -json tf.plan > plan_output.json 
+      - cd terraform && terraform init >& init.log && terraform plan -json -out=tf.plan > plan_log.jsonl && terraform show -json tf.plan > plan_output.json 
       
 
 
