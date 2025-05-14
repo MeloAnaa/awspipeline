@@ -16,8 +16,9 @@ phases:
       - cd terraform
 
       - terraform init 
-      - terraform plan -json -out=tf.plan > plan_log.jsonl
-      - terraform show -json tf.plan > plan_output.json
+      - terraform plan -out=tf.plan
+      - terraform show -json tf.plan > plan_log.jsonl
+
 
       #Firefly dentro do diretório
       - curl -O https://gofirefly-prod-iac-ci-cli-binaries.s3.amazonaws.com/fireflyci/latest/fireflyci_Linux_x86_64.tar.gz
