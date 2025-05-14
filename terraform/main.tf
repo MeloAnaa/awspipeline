@@ -1,12 +1,18 @@
 resource "aws_s3_bucket" "meu_bucket" {
-  bucket = "meu-bucket-exemplo-simples-12345"
-  acl    = "private"
-
-  tags = {
-    Environment = "Dev"
-    Owner = "ana"
-    Project = "project"
-  }
+  "acl": "private",
+  "bucket": "testandobuckets3ananana",
+  "force_destroy": false,
+  "tags": {
+    "Environment": "Dev",
+    "Owner": "ana",
+    "Project": "project"
+  },
+  "tags_all": {
+    "Environment": "Dev",
+    "Owner": "ana",
+    "Project": "project"
+  },
+  "timeouts": null
 }
 
 
