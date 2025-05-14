@@ -1,6 +1,3 @@
-provider "aws" {
-  region = "us-east-1"
-}
 
 # Bucket S3 com política de ciclo de vida (FinOps: armazenamento econômico)
 resource "aws_s3_bucket" "static_files" {
