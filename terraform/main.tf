@@ -1,109 +1,60 @@
-# S3 Bucket para armazenar os relatórios CUR
-resource "aws_s3_bucket" "cur_bucket" {
-  bucket = "finopscurbucketdemoanaalab202555"  # Certifique-se de que seja único globalmente
+provider "aws" {
+  region = "us-east-1"
+}
+
+# Bucket S3 com política de ciclo de vida (FinOps: armazenamento econômico)
+resource "aws_s3_bucket" "static_files" {
+  bucket = "project-dev-bucket"
 
   tags = {
-    Environment = "labestagioana"
     Owner       = "ana"
-    Project     = "lab"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "cur_versioning" {
-  bucket = aws_s3_bucket.cur_bucket.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "cur_block" {
-  bucket                  = aws_s3_bucket.cur_bucket.id
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_policy" "cur_bucket_policy" {
-  bucket = aws_s3_bucket.cur_bucket.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Sid       = "AWSBillingPermissions",
-        Effect    = "Allow",
-        Principal = { Service = "billingreports.amazonaws.com" },
-        Action    = "s3:GetBucketAcl",
-        Resource  = aws_s3_bucket.cur_bucket.arn
-      },
-      {
-        Sid       = "AWSBillingPermissions2",
-        Effect    = "Allow",
-        Principal = { Service = "billingreports.amazonaws.com" },
-        Action    = [
-          "s3:PutObject",
-          "s3:PutObjectAcl"
-        ],
-        Resource = "${aws_s3_bucket.cur_bucket.arn}/cur-data/*"
-      }
-    ]
-  })
-}
-
-# Glue Database
-resource "aws_glue_catalog_database" "cur_db" {
-  name = "finops_cur_db"
-
-  tags = {
-    Environment = "labestagioana"
-    Owner       = "ana"
-    Project     = "lab"
-  }
-}
-
-# Glue Table
-resource "aws_glue_catalog_table" "cur_table" {
-  name          = "cur_table"
-  database_name = aws_glue_catalog_database.cur_db.name
-  table_type    = "EXTERNAL_TABLE"
-
-  parameters = {
-    classification = "parquet"
+    Environment = "dev"
+    Project     = "Project"
   }
 
-  storage_descriptor {
-    location      = "s3://${aws_s3_bucket.cur_bucket.bucket}/cur-data/"
-    input_format  = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
-    output_format = "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
+  lifecycle_rule {
+    id      = "expire-old-objects"
+    enabled = true
 
-    columns {
-      name = "identity_line_item_id"
-      type = "string"
-    }
-
-    ser_de_info {
-      serialization_library = "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
+    expiration {
+      days = 30
     }
   }
 }
 
-# CUR Report Definition
-resource "aws_cur_report_definition" "cur" {
-  report_name                = "finops-cur-report" # Certifique-se de que seja único por conta/região
-  time_unit                  = "DAILY"
-  format                     = "Parquet"
-  compression                = "Parquet"
-  additional_schema_elements = ["RESOURCES"]
-  s3_bucket                  = aws_s3_bucket.cur_bucket.bucket
-  s3_prefix                  = "cur-data/"
-  s3_region                  = "us-east-1"
-  report_versioning          = "CREATE_NEW_REPORT"
-  refresh_closed_reports     = true
+# Instância EC2 econômica (FinOps: uso de instância ARM t4g.nano)
+resource "aws_instance" "web" {
+  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 (ARM64)
+  instance_type = "t4g.nano"
 
-  depends_on = [
-    aws_s3_bucket_policy.cur_bucket_policy,
-    aws_s3_bucket_public_access_block.cur_block
-  ]
+  tags = {
+    Name        = "web-instance"
+    Owner       = "ana"
+    Environment = "dev"
+    Project     = "Project"
+  }
+}
+
+# Alarme de custo com CloudWatch (FinOps: visibilidade de custos)
+resource "aws_cloudwatch_metric_alarm" "budget_alert" {
+  alarm_name          = "high-cost-alert"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "EstimatedCharges"
+  namespace           = "AWS/Billing"
+  period              = 21600
+  statistic           = "Maximum"
+  threshold           = 10.00
+  alarm_description   = "Alerta quando custo estimado ultrapassa $10"
+  actions_enabled     = false # Pode adicionar SNS para alertar
+
+  dimensions = {
+    Currency = "USD"
+  }
+
+  tags = {
+    Owner       = "ana"
+    Environment = "dev"
+    Project     = "Project"
+  }
 }
