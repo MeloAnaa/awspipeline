@@ -1,5 +1,3 @@
-
-
 # S3 Bucket para armazenar os relatórios CUR
 resource "aws_s3_bucket" "cur_bucket" {
   bucket = "finopscurbucketdemoanaalab202555"  # Certifique-se de que seja único globalmente
@@ -44,8 +42,11 @@ resource "aws_s3_bucket_policy" "cur_bucket_policy" {
         Sid       = "AWSBillingPermissions2",
         Effect    = "Allow",
         Principal = { Service = "billingreports.amazonaws.com" },
-        Action    = "s3:PutObject",
-        Resource  = "${aws_s3_bucket.cur_bucket.arn}/cur-data/*"
+        Action    = [
+          "s3:PutObject",
+          "s3:PutObjectAcl"
+        ],
+        Resource = "${aws_s3_bucket.cur_bucket.arn}/cur-data/*"
       }
     ]
   })
@@ -90,7 +91,7 @@ resource "aws_glue_catalog_table" "cur_table" {
 
 # CUR Report Definition
 resource "aws_cur_report_definition" "cur" {
-  report_name                = "finops-cur-report"
+  report_name                = "finops-cur-report" # Certifique-se de que seja único por conta/região
   time_unit                  = "DAILY"
   format                     = "Parquet"
   compression                = "Parquet"
@@ -100,4 +101,9 @@ resource "aws_cur_report_definition" "cur" {
   s3_region                  = "us-east-1"
   report_versioning          = "CREATE_NEW_REPORT"
   refresh_closed_reports     = true
+
+  depends_on = [
+    aws_s3_bucket_policy.cur_bucket_policy,
+    aws_s3_bucket_public_access_block.cur_block
+  ]
 }
