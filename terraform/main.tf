@@ -22,7 +22,7 @@ resource "aws_s3_bucket" "static_files" {
 # Instância EC2 econômica (FinOps: uso de instância ARM t4g.nano)
 resource "aws_instance" "web" {
   ami           = "ami-0953476d60561c955"
-  instance_type = "t4g.nano"
+  instance_type = "t2.nano"
 
   tags = {
     Name        = "web-instance"
