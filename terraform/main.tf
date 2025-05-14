@@ -1,7 +1,7 @@
 
 # Bucket S3 com política de ciclo de vida (FinOps: armazenamento econômico)
 resource "aws_s3_bucket" "static_files" {
-  bucket = "project-dev-bucket"
+  bucket = "buckets3labestagioana"
 
   tags = {
     Owner       = "ana"
@@ -21,7 +21,7 @@ resource "aws_s3_bucket" "static_files" {
 
 # Instância EC2 econômica (FinOps: uso de instância ARM t4g.nano)
 resource "aws_instance" "web" {
-  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 (ARM64)
+  ami           = "ami-0953476d60561c955"
   instance_type = "t4g.nano"
 
   tags = {
