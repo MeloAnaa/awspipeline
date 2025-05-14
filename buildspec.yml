@@ -18,7 +18,8 @@ phases:
       - terraform init 
       - terraform plan -out=tf.plan
       - terraform show -json tf.plan > plan_log.jsonl
-      - terraform apply -refresh=true
+      - terraform apply -auto-approve -refresh=true
+
 
 
 
