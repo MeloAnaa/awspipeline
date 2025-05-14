@@ -7,8 +7,8 @@ locals {
 }
 
 # S3 para CUR
-resource "aws_s3_bucket" "cur_bucket" {
-  bucket = "finopsCurBucketDemoANAAA"
+resource "aws_s3_bucket" "curbucket" {
+  bucket = "finopsCurBucketDemoANAAAlab2025"
 
   tags = local.common_tags
 }

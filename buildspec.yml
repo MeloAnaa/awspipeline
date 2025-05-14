@@ -18,7 +18,8 @@ phases:
       - terraform init 
       - terraform plan -out=tf.plan
       - terraform show -json tf.plan > plan_log.jsonl
-      - terraform apply -auto-approve "tf.plan"
+      - terraform apply -refresh=true
+
 
 
       #Firefly dentro do diretório
