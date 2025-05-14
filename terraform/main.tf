@@ -1,6 +1,4 @@
-provider "aws" {
-  region = "us-east-1"
-}
+
 
 # S3 Bucket para armazenar os relatórios CUR
 resource "aws_s3_bucket" "cur_bucket" {
