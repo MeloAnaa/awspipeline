@@ -12,8 +12,8 @@ resource "aws_instance" "web" {
   }
 }
 
-resource "aws_security_group" "default" {
-  name        = "default"
+resource "aws_security_group" "web_sg" {
+  name        = "web_sg"
   description = "Allow HTTP and SSH"
   vpc_id      = "vpc-0ac9b054c0e7ec98b"
 
