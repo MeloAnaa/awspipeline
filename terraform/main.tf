@@ -101,3 +101,47 @@ resource "aws_s3_bucket" "anaestagiolab2025ana" {
 
 
 
+
+resource "aws_security_group" "default" {
+  description = "default VPC security group"
+  
+  # HTTP outbound
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  # SSH outbound
+  egress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  # HTTP inbound
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  # SSH inbound
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  name   = "default"
+  vpc_id = "vpc-0ac9b054c0e7ec98b"
+  
+  # The following attributes have default values introduced when importing the resource into terraform: [revoke_rules_on_delete timeouts]
+  lifecycle {
+    ignore_changes = [revoke_rules_on_delete, timeouts]
+  }
+}
