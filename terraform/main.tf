@@ -30,6 +30,15 @@ resource "aws_security_group" "web_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  #icmp
+  ingress { 
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -77,11 +86,6 @@ resource "aws_lb_target_group_attachment" "web_attachment" {
 
 
 
-
-
-
-  
-
 resource "aws_s3_bucket" "anaestagiolab2025ana" {
   bucket = "anaestagiolab2025ana"
   tags = {
@@ -92,9 +96,4 @@ resource "aws_s3_bucket" "anaestagiolab2025ana" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "anaestagiolab2025ana_versioning" {
-  bucket = aws_s3_bucket.anaestagiolab2025ana.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+###linha de vers
