@@ -11,49 +11,40 @@ resource "aws_instance" "web" {
   }
 }
 
+
+
 resource "aws_security_group" "web_sg" {
-  name        = "web_sg"
   description = "Allow HTTP and SSH"
-  vpc_id      = "vpc-0ac9b054c0e7ec98b"
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  #icmp
-  ingress { 
-    from_port   = -1
-    to_port     = -1
-    protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   egress {
-    from_port   = -1
-    to_port     = -1
-    protocol    = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-
-
-
-  egress {
-    from_port   = 0
-    to_port     = 0
     protocol    = "-1"
+    self        = false
+  }
+  ingress {
     cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 22
+    protocol    = "tcp"
+    self        = false
+    to_port     = 22
+  }
+  ingress {
+    cidr_blocks = ["0.0.0.0/0"]
+    from_port   = 80
+    protocol    = "tcp"
+    self        = false
+    to_port     = 80
+  }
+  name   = "web_sg"
+  vpc_id = "vpc-0ac9b054c0e7ec98b"
+  # The following attributes have default values introduced when importing the resource into terraform: [revoke_rules_on_delete timeouts]
+  lifecycle {
+    ignore_changes = [revoke_rules_on_delete, timeouts]
   }
 }
+
+
+
+
 
 resource "aws_network_interface_sg_attachment" "web_sg_attach" {
   security_group_id    = aws_security_group.web_sg.id
@@ -106,31 +97,4 @@ resource "aws_s3_bucket" "anaestagiolab2025ana" {
 
 ###linha de vers
 
-resource "aws_security_group" "web_sg" {
-  description = "Allow HTTP and SSH"
-  egress {
-    cidr_blocks = ["0.0.0.0/0"]
-    protocol    = "-1"
-    self        = false
-  }
-  ingress {
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 22
-    protocol    = "tcp"
-    self        = false
-    to_port     = 22
-  }
-  ingress {
-    cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 80
-    protocol    = "tcp"
-    self        = false
-    to_port     = 80
-  }
-  name   = "web_sg"
-  vpc_id = "vpc-0ac9b054c0e7ec98b"
-  # The following attributes have default values introduced when importing the resource into terraform: [revoke_rules_on_delete timeouts]
-  lifecycle {
-    ignore_changes = [revoke_rules_on_delete, timeouts]
-  }
-}
+
