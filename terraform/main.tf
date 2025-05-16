@@ -1,3 +1,44 @@
+# ----------------------
+# BACKEND REMOTO
+# ----------------------
+terraform {
+  backend "s3" {
+    bucket         = "analabestagio2025-terraform-estado"
+    key            = "terraform/state.tfstate"
+    region         = "us-east-1"
+  }
+}
+
+
+
+# ----------------------
+# INFRAESTRUTURA PARA O BACKEND 
+# -------------------------
+
+
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "analabestagio2025-terraform-estado"
+
+  versioning {
+    enabled = false
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  tags = {
+    Name        = "terraform-state"
+    Environment = "infra"
+  }
+}
+
+
+
+# ------------------------------------------------------------------------------------------------
+
+
 resource "aws_instance" "web" {
   ami           = "ami-0953476d60561c955"
   instance_type = "t2.nano"
@@ -20,14 +61,14 @@ resource "aws_security_group" "web_sg" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # acesso HTTP abertointernet
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -43,16 +84,14 @@ resource "aws_network_interface_sg_attachment" "web_sg_attach" {
   network_interface_id = aws_instance.web.primary_network_interface_id
 }
 
-
 resource "aws_lb" "web_alb" {
   name               = "web-alb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"] 
+  subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
   security_groups    = [aws_security_group.web_sg.id]
 }
 
-# Target group para a instância
 resource "aws_lb_target_group" "web_tg" {
   name     = "web-tg"
   port     = 80
@@ -78,7 +117,7 @@ resource "aws_lb_target_group_attachment" "web_attachment" {
 }
 
 resource "aws_s3_bucket" "ana_bucket" {
-  bucket = "anaestagiolab2025anaana"
+  bucket = "anaestagiolab2025ana"
 
   tags = {
     Name        = "anaestagiolab2025ana"
