@@ -2,7 +2,7 @@ resource "aws_instance" "web" {
   ami                    = "ami-0953476d60561c955"
   instance_type          = "t2.nano"
   subnet_id              = "subnet-0daf079f949e01bff"
-  vpc_security_group_ids = [aws_security_group.default.id]
+  vpc_security_group_ids = [aws_security_group.web_sg.id]  # Corrigido para usar web_sg
 
   tags = {
     Name        = "web-instance"
@@ -55,7 +55,7 @@ resource "aws_lb" "web_alb" {
   internal           = false
   load_balancer_type = "application"
   subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
-  security_groups    = [aws_security_group.default.id]
+  security_groups    = [aws_security_group.web_sg.id]  # Corrigido para usar web_sg
 }
 
 resource "aws_lb_target_group" "web_tg" {
