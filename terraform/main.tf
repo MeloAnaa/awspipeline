@@ -16,13 +16,6 @@ resource "aws_security_group" "web_sg" {
   description = "Allow HTTP and SSH"
   egress {
     cidr_blocks = ["0.0.0.0/0"]
-    from_port   = -1
-    protocol    = "icmp"
-    self        = false
-    to_port     = -1
-  }
-  egress {
-    cidr_blocks = ["0.0.0.0/0"]
     protocol    = "-1"
     self        = false
   }
@@ -47,6 +40,7 @@ resource "aws_security_group" "web_sg" {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
 }
+
 
 
 
