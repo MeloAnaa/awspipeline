@@ -12,36 +12,34 @@ resource "aws_instance" "web" {
 }
 
 
+
+
+
 resource "aws_security_group" "web_sg" {
-  description = "Allow HTTP and SSH"
-  egress {
-    cidr_blocks = ["0.0.0.0/0"]
+  description = "Allow all traffic"
+  name        = "web_sg"
+  vpc_id      = "vpc-0ac9b054c0e7ec98b"
+
+  # Entrada (ingress) - tudo liberado
+  ingress {
+    from_port   = 0
+    to_port     = 0
     protocol    = "-1"
-    self        = false
-  }
-  ingress {
     cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 22
-    protocol    = "tcp"
-    self        = false
-    to_port     = 22
   }
-  ingress {
+
+  # Saída (egress) - tudo liberado
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 80
-    protocol    = "tcp"
-    self        = false
-    to_port     = 80
   }
-  name   = "web_sg"
-  vpc_id = "vpc-0ac9b054c0e7ec98b"
-  # The following attributes have default values introduced when importing the resource into terraform: [revoke_rules_on_delete timeouts]
+
   lifecycle {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
 }
-
-
 
 
 
