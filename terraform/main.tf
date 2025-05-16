@@ -84,4 +84,5 @@ resource "aws_s3_bucket" "ana_bucket" {
     Environment = "dev"
     Project     = "Project"
   }
-}
+
+  
