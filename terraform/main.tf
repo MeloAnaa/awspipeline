@@ -1,28 +1,7 @@
-
-# Bucket S3 com política de ciclo de vida (FinOps: armazenamento econômico)
-resource "aws_s3_bucket" "static_files" {
-  bucket = "buckets3labestagioana"
-
-  tags = {
-    Owner       = "ana"
-    Environment = "dev"
-    Project     = "Project"
-  }
-
-  lifecycle_rule {
-    id      = "expire-old-objects"
-    enabled = true
-
-    expiration {
-      days = 30
-    }
-  }
-}
-
-# Instância EC2 econômica (FinOps: uso de instância ARM t4g.nano)
 resource "aws_instance" "web" {
   ami           = "ami-0953476d60561c955"
   instance_type = "t2.nano"
+  subnet_id     = "subnet-0daf079f949e01bff"  
 
   tags = {
     Name        = "web-instance"
@@ -32,26 +11,68 @@ resource "aws_instance" "web" {
   }
 }
 
-# Alarme de custo com CloudWatch (FinOps: visibilidade de custos)
-resource "aws_cloudwatch_metric_alarm" "budget_alert" {
-  alarm_name          = "high-cost-alert"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "EstimatedCharges"
-  namespace           = "AWS/Billing"
-  period              = 21600
-  statistic           = "Maximum"
-  threshold           = 10.00
-  alarm_description   = "Alerta quando custo estimado ultrapassa $10"
-  actions_enabled     = false # Pode adicionar SNS para alertar
+resource "aws_security_group" "web_sg" {
+  name        = "web_sg"
+  description = "Allow HTTP and SSH"
+  vpc_id      = "vpc-0ac9b054c0e7ec98b"
 
-  dimensions = {
-    Currency = "USD"
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # acesso HTTP abertointernet
   }
 
-  tags = {
-    Owner       = "ana"
-    Environment = "dev"
-    Project     = "Project"
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  
   }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_network_interface_sg_attachment" "web_sg_attach" {
+  security_group_id    = aws_security_group.web_sg.id
+  network_interface_id = aws_instance.web.primary_network_interface_id
+}
+
+
+resource "aws_lb" "web_alb" {
+  name               = "web-alb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"] 
+  security_groups    = [aws_security_group.web_sg.id]
+}
+
+# Target group para a instância
+resource "aws_lb_target_group" "web_tg" {
+  name     = "web-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "vpc-0ac9b054c0e7ec98b"
+}
+
+resource "aws_lb_listener" "web_listener" {
+  load_balancer_arn = aws_lb.web_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.web_tg.arn
+  }
+}
+
+resource "aws_lb_target_group_attachment" "web_attachment" {
+  target_group_arn = aws_lb_target_group.web_tg.arn
+  target_id        = aws_instance.web.id
+  port             = 80
 }
