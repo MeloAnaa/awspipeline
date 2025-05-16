@@ -1,7 +1,8 @@
 resource "aws_instance" "web" {
-  ami           = "ami-0953476d60561c955"
-  instance_type = "t2.nano"
-  subnet_id     = "subnet-0daf079f949e01bff"  
+  ami                    = "ami-0953476d60561c955"
+  instance_type          = "t2.nano"
+  subnet_id              = "subnet-0daf079f949e01bff"
+  vpc_security_group_ids = [aws_security_group.default.id]
 
   tags = {
     Name        = "web-instance"
@@ -11,64 +12,42 @@ resource "aws_instance" "web" {
   }
 }
 
-
-
-
-
-
-
 resource "aws_security_group" "default" {
-  description = "default VPC security group"
-  
-  # HTTP outbound
-  egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  # SSH outbound
-  egress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  
-  # HTTP inbound
+  name        = "default"
+  description = "Allow HTTP and SSH"
+  vpc_id      = "vpc-0ac9b054c0e7ec98b"
+
   ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
-  # SSH inbound
+
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
-  name   = "default"
-  vpc_id = "vpc-0ac9b054c0e7ec98b"
-  
-  # The following attributes have default values introduced when importing the resource into terraform: [revoke_rules_on_delete timeouts]
+
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   lifecycle {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
-}
-
-
-
-
-
-
-resource "aws_network_interface_sg_attachment" "web_sg_attach" {
-  security_group_id    = aws_security_group.web_sg.id
-  network_interface_id = aws_instance.web.primary_network_interface_id
 }
 
 resource "aws_lb" "web_alb" {
@@ -76,7 +55,7 @@ resource "aws_lb" "web_alb" {
   internal           = false
   load_balancer_type = "application"
   subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
-  security_groups    = [aws_security_group.web_sg.id]
+  security_groups    = [aws_security_group.default.id]
 }
 
 resource "aws_lb_target_group" "web_tg" {
@@ -103,8 +82,6 @@ resource "aws_lb_target_group_attachment" "web_attachment" {
   port             = 80
 }
 
-
-
 resource "aws_s3_bucket" "anaestagiolab2025ana" {
   bucket = "anaestagiolab2025ana"
   tags = {
@@ -114,5 +91,3 @@ resource "aws_s3_bucket" "anaestagiolab2025ana" {
     Project     = "Project"
   }
 }
-
-###linha de vers
