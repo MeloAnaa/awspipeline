@@ -5,8 +5,16 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  backend "s3" {
+    bucket         = "analabshoppr-tfstate-bucket"     
+    key            = "global/s3/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "shoppr-tfstate-locking"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
-  region = "us-east-1"  
+  region = "us-east-1"
 }
