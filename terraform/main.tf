@@ -2,7 +2,7 @@ resource "aws_instance" "web" {
   ami                    = "ami-0953476d60561c955"
   instance_type          = "t2.nano"
   subnet_id              = "subnet-0daf079f949e01bff"
-  vpc_security_group_ids = [aws_security_group.web_sg.id]  # Corrigido para usar web_sg
+  vpc_security_group_ids = [aws_security_group.web_sg.id]  
 
   tags = {
     Name        = "web-instance"
@@ -11,6 +11,8 @@ resource "aws_instance" "web" {
     Project     = "Project"
   }
 }
+
+
 
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
@@ -35,6 +37,8 @@ resource "aws_security_group" "web_sg" {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
 }
+
+
 
 
 resource "aws_lb" "web_alb" {
