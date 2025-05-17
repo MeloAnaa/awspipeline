@@ -6,8 +6,6 @@ resource "aws_instance" "web" {
 }
 
 
-
-
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
   description = "Allow SSH ingress and all egress"
