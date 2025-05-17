@@ -16,20 +16,21 @@ resource "aws_instance" "web" {
 
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
-  description = "Allow all traffic"
+  description = "Allow SSH ingress and all egress"
   vpc_id      = "vpc-0ac9b054c0e7ec98b"
 
-  egress {
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-    protocol    = "-1"
     self        = false
   }
-  ingress {
+
+  egress {
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    from_port   = 22
-    protocol    = "tcp"
     self        = false
-    to_port     = 22
   }
 
   lifecycle {
