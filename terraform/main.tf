@@ -14,34 +14,20 @@ resource "aws_instance" "web" {
 
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
-  description = "Allow HTTP and SSH"
+  description = "Allow all traffic"
   vpc_id      = "vpc-0ac9b054c0e7ec98b"
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"  
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -49,6 +35,7 @@ resource "aws_security_group" "web_sg" {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
 }
+
 
 resource "aws_lb" "web_alb" {
   name               = "web-alb"
