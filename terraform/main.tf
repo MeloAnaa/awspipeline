@@ -4,13 +4,10 @@ resource "aws_instance" "web" {
   subnet_id              = "subnet-0daf079f949e01bff"
   vpc_security_group_ids = [aws_security_group.web_sg.id]  
 
-  tags = {
-    Name        = "web-instance"
-    Owner       = "ana"
-    Environment = "dev"
-    Project     = "Project"
-  }
-}
+  
+
+
+  
 
 
 
