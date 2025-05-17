@@ -5,7 +5,6 @@ phases:
     commands:
       - yum update -y
       - yum install -y unzip tar gzip
-
       - TERRAFORM_VERSION="1.5.7"
       - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
       - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/
@@ -14,24 +13,17 @@ phases:
     commands:
       - echo "Gerando plano do Terraform..."
       - cd terraform
-
       - terraform init 
       - terraform plan -out=tf.plan
       - terraform show -json tf.plan > plan_log.jsonl
-      - terraform apply -auto-approve -refresh=true
 
-
-
-
-      #Firefly dentro do diretório
+      # Firefly
       - curl -O https://gofirefly-prod-iac-ci-cli-binaries.s3.amazonaws.com/fireflyci/latest/fireflyci_Linux_x86_64.tar.gz
       - tar -xf fireflyci_Linux_x86_64.tar.gz
       - chmod a+x fireflyci
-      - ./fireflyci post-plan -l plan_log.jsonl -f plan_output.json --workspace WORKSPACEana123 --repository awspipeline
+      - ./fireflyci post-plan -l plan_log.jsonl -f tf.plan --workspace WORKSPACEana123 --repository MeloAnaa/awspipeline
 
-
-
-
+      - terraform apply -auto-approve -refresh=true
 
 
       
