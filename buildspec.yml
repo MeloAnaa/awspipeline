@@ -15,16 +15,16 @@ phases:
       - cd terraform
       - terraform init 
       - terraform plan -out=tf.plan
+      - terraform show -json tf.plan > plan_output.json
       - terraform show -json tf.plan > plan_log.jsonl
 
       # Firefly
       - curl -O https://gofirefly-prod-iac-ci-cli-binaries.s3.amazonaws.com/fireflyci/latest/fireflyci_Linux_x86_64.tar.gz
       - tar -xf fireflyci_Linux_x86_64.tar.gz
       - chmod a+x fireflyci
-      - ./fireflyci post-plan -l plan_log.jsonl -f tf.plan --workspace WORKSPACEana123 --repository MeloAnaa/awspipeline
+      - ./fireflyci post-plan -l plan_log.jsonl -f plan_output.json --workspace WORKSPACEana123 --repository MeloAnaa/awspipeline
 
       - terraform apply -auto-approve -refresh=true
-
 
       
 
