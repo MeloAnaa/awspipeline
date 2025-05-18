@@ -13,7 +13,6 @@ resource "aws_instance" "web" {
 }
 
 
-
 resource "aws_security_group" "web_sg" {
   name        = "web_sg"
   description = "Allow SSH ingress and all egress"
@@ -75,20 +74,6 @@ resource "aws_lb_target_group_attachment" "web_attachment" {
   target_id        = aws_instance.web.id
   port             = 80
 }
-
-
-
-resource "aws_s3_bucket" "anaestagiolab2025ana" {
-  bucket = "anaestagiolab2025ana"
-  tags = {
-    Environment = "dev"
-    Name        = "anaestagiolab2025ana"
-    Owner       = "ana"
-    Project     = "Project"
-  }
-}
-
-
 
 
 
