@@ -87,9 +87,4 @@ resource "aws_s3_bucket" "anaestagiolab2025ana" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "versioning" {
-  bucket = aws_s3_bucket.anaestagiolab2025ana.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+
