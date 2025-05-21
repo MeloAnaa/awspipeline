@@ -1,6 +1,6 @@
 resource "aws_instance" "web" {
   ami                    = "ami-0953476d60561c955"
-  instance_type          = "t2.nano"
+  instance_type          = "c3.large"
   subnet_id              = "subnet-0daf079f949e01bff"
   vpc_security_group_ids = [aws_security_group.web_sg.id]  
 
@@ -83,7 +83,7 @@ resource "aws_s3_bucket" "anaestagiolab2025ana1" {
     Environment = "dev"
     Name        = "anaestagiolab2025ana"
     Owner       = "ana"
-    Project     = "Projecttt"
+    Project     = "Project"
   }
 }
 
