@@ -77,7 +77,7 @@ resource "aws_lb_target_group_attachment" "web_attachment" {
 
 
 
-resource "aws_s3_bucket" "anaestagiolab2025ana" {
+resource "aws_s3_bucket" "anaestagiolab2025ana1" {
   bucket = "anaestagiolab2025ana"
   tags = {
     Environment = "dev"
