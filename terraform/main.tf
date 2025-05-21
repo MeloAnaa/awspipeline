@@ -83,7 +83,7 @@ resource "aws_s3_bucket" "anaestagiolab2025ana1" {
     Environment = "dev"
     Name        = "anaestagiolab2025ana"
     Owner       = "ana"
-    Project     = "Projectt"
+    Project     = "Projecttt"
   }
 }
 
