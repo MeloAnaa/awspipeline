@@ -48,23 +48,24 @@ resource "aws_lb" "web_alb" {
   tags = {
     Name        = "web-load-balancer"
     Environment = "firefly" 
+  }
   name               = "web-alb"
   internal           = false
   load_balancer_type = "application"
   subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
-  security_groups    = [aws_security_group.web_sg.id]  # Corrigido para usar web_sg
-  }
+  security_groups    = [aws_security_group.web_sg.id]  
+  
 }
 
 resource "aws_lb_target_group" "web_tg" {
   tags = {
     Name        = "web-target-group"
     Environment = "firefly" 
+  }
   name     = "web-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = "vpc-0ac9b054c0e7ec98b"
-  }
 }
 
 resource "aws_lb_listener" "web_listener" {
