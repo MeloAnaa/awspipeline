@@ -1,4 +1,4 @@
-resource "aws_instance" "web" {
+resource "aws_instanceana" "web" {
   ami                    = "ami-0953476d60561c955"
   instance_type          = "t2.nano"
   subnet_id              = "subnet-0daf079f949e01bff"
