@@ -1,6 +1,6 @@
-resource "aws_instanceana" "web" {
+resource "aws_instance" "web" {
   ami                    = "ami-0953476d60561c955"
-  instance_type          = "t2.nano"
+  instance_type          = "c3.large"
   subnet_id              = "subnet-0daf079f949e01bff"
   vpc_security_group_ids = [aws_security_group.web_sg.id]  
 
@@ -52,20 +52,7 @@ resource "aws_lb" "web_alb" {
   subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
   security_groups    = [aws_security_group.web_sg.id]  
   
-  tags = {
-    Environment = "dev"
-    Name        = "anaestagiolab2025ana"
-    Owner       = "ana"
-    Project     = "Project"
-  }
-
 }
-
-
-
-
-
-
 
 resource "aws_lb_target_group" "web_tg" {
   tags = {
