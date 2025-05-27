@@ -45,10 +45,7 @@ resource "aws_security_group" "web_sg" {
 
 resource "aws_lb" "web_alb" {
 
-  tags = {
-    Name        = "web-load-balancer"
-    Environment = "firefly" 
-  }
+
   name               = "web-alb"
   internal           = false
   load_balancer_type = "application"
