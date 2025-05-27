@@ -1,4 +1,4 @@
 resource "aws_s3_bucket" "testeanaestagioteste123" {
-  alias = aws.tokyo
+  provider = aws.tokyo
   bucket   = "testeanaestagioteste123"
 }
