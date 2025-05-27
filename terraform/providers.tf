@@ -16,6 +16,7 @@ terraform {
 }
 
 provider "aws" {
+  alias = "nv"
   region = "us-east-1"
 }
 
