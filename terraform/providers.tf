@@ -18,13 +18,3 @@ terraform {
 provider "aws" {
   region = "us-east-1"
 }
-
-provider "aws" {
-  alias  = "nv"
-  region = "us-east-1"
-}
-
-provider "aws" {
-  alias  = "tokyo"
-  region = "ap-northeast-1"
-}
