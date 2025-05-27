@@ -52,7 +52,20 @@ resource "aws_lb" "web_alb" {
   subnets            = ["subnet-0daf079f949e01bff", "subnet-090eb77b6e57cfe74"]
   security_groups    = [aws_security_group.web_sg.id]  
   
+  tags = {
+    Environment = "dev"
+    Name        = "anaestagiolab2025ana"
+    Owner       = "ana"
+    Project     = "Project"
+  }
+
 }
+
+
+
+
+
+
 
 resource "aws_lb_target_group" "web_tg" {
   tags = {
