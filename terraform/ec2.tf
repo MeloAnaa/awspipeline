@@ -1,4 +1,4 @@
-resource "aws_instance" "web_tokyo" {
+resource "aws_instance2" "web_tokyo" {
   provider      = aws.tokyo
   ami           = "ami-0c1638aa346a43fe8" 
   instance_type = "t2.micro"
