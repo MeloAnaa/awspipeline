@@ -6,5 +6,6 @@ resource "aws_instance" "web_tokyo" {
   tags = {
     Name        = "web-instance2"
     Owner       = "ana"
+    Environment = "teste"
   }
 }
