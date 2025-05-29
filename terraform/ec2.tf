@@ -4,7 +4,7 @@ resource "aws_instance" "web_tokyo" {
   instance_type = "t2.nano"
 
   tags = {
-    Name        = "web-instancetokyo"
+    Name        = "instancetokyo"
     Owner       = "ana"
     Environment = "teste"
   }
