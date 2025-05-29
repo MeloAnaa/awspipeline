@@ -37,6 +37,10 @@ resource "aws_security_group" "web_sg" {
   lifecycle {
     ignore_changes = [revoke_rules_on_delete, timeouts]
   }
+  tags = {
+    Name        = "web-alb"
+    Environment = "firefly" 
+  }
 }
 
 
