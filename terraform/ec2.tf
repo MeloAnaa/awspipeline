@@ -11,7 +11,7 @@ resource "aws_instance" "web_tokyo" {
 }
 
 resource "aws_instance" "instancetokyo" {
-  ami                         = "ami-0c7217cdde317cfec"
+  ami                         = "ami-0c1638aa346a43fe8"
   associate_public_ip_address = true
   availability_zone           = "ap-northeast-1a"
   cpu_core_count              = 1
