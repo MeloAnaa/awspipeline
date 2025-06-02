@@ -27,7 +27,7 @@ resource "aws_instance" "instancetokyo" {
     volume_type = "gp3"
   }
   security_groups = ["default"]
-  subnet_id       = "subnet-12345678"
+  subnet_id       = "subnet-0daf079f949e01bff"
   tags = {
     Name        = "instancetokyo"
     Owner       = "ana"
