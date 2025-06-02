@@ -17,7 +17,7 @@ resource "aws_instance" "tokyo" {
   instance_type               = "t2.nano"
   subnet_id                   = "subnet-0daf079f949e01bff"
   associate_public_ip_address = true
-  vpc_security_group_ids      = ["sg-xxxxxxxxxxxxxxxxx"] # <- Substitua pelo ID real do security group
+  vpc_security_group_ids      = [aws_security_group.web_sg.id] 
 
   tags = {
     Name        = "instancetokyo"
