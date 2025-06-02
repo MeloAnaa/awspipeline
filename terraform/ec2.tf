@@ -3,7 +3,21 @@ resource "aws_instance" "tokyo" {
   ami                         = "ami-0c1638aa346a43fe8"
   instance_type               = "t2.nano"
   subnet_id                   = "subnet-0daf079f949e01bff"
-  security_groups             = ["default"]
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]   
+  tags = {
+    Name        = "instancetokyo"
+    Environment = "teste"
+    Owner       = "ana"
+  }
+}
+resource "aws_instance" "tokyo" {
+  provider                    = aws.tokyo
+  ami                         = "ami-0c1638aa346a43fe8"
+  instance_type               = "t2.nano"
+  subnet_id                   = "subnet-0daf079f949e01bff"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = ["sg-xxxxxxxxxxxxxxxxx"] # <- Substitua pelo ID real do security group
 
   tags = {
     Name        = "instancetokyo"
@@ -11,4 +25,3 @@ resource "aws_instance" "tokyo" {
     Owner       = "ana"
   }
 }
-
