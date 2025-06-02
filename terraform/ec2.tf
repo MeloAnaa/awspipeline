@@ -1,6 +1,6 @@
 
 resource "aws_instance" "tokyo" {
-  ami                         = "ami-0c1638aa346a43fe8"
+  ami                         = "ami-0dfa0840de3c2c70a"
   associate_public_ip_address = true
   availability_zone           = "ap-northeast-1a"
   credit_specification {
