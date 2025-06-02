@@ -1,5 +1,5 @@
 
-resource "aws_instance" "instancetokyo" {
+resource "aws_instance" "web" {
   ami                         = "ami-0c1638aa346a43fe8"
   associate_public_ip_address = true
   availability_zone           = "ap-northeast-1a"
