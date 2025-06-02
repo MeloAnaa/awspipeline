@@ -1,10 +1,7 @@
-provider "aws" {
-  region = "ap-northeast-1"
-}
-
 resource "aws_instance" "tokyo" {
   ami           = "ami-0c1638aa346a43fe8"
   instance_type = "t2.nano"
+  availability_zone           = "ap-northeast-1a" 
   subnet_id     = "subnet-0daf079f949e01bff"
   associate_public_ip_address = true
   security_groups = ["default"]
