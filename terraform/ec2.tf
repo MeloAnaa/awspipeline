@@ -3,7 +3,6 @@ resource "aws_instance" "tokyo" {
   ami                         = "ami-0c1638aa346a43fe8"
   instance_type               = "t2.nano"
   subnet_id                   = "subnet-0daf079f949e01bff"
-  associate_public_ip_address = true
   security_groups             = ["default"]
 
   tags = {
