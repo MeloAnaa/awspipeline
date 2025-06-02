@@ -33,6 +33,7 @@ resource "aws_instance" "instancetokyo" {
   tags = {
     Name        = "instancetokyo"
     Owner       = "ana"
+    Environment = "teste"
   }
   tenancy = "default"
   # The following attributes have default values introduced when importing the resource into terraform: [timeouts]
