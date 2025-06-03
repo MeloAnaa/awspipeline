@@ -1,6 +1,6 @@
 resource "aws_instance" "web" {
   ami                    = "ami-0953476d60561c955"
-  instance_type          = "t3.large"
+  instance_type          = "t2.nano
   subnet_id              = "subnet-0daf079f949e01bff"
   vpc_security_group_ids = [aws_security_group.web_sg.id]
   ebs_optimized          = true

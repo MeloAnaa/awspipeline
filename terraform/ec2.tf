@@ -1,5 +1,5 @@
 resource "aws_instance" "tokyo" {
-  provider                    = us-east-1
+  provider                    = aws.tokyo
   ami                         = "ami-0c1638aa346a43fe8"
   instance_type               = "t2.nano"
   subnet_id                   = "subnet-01a2eb5d053121039"
